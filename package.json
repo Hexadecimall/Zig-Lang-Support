@@ -2,7 +2,7 @@
   "name": "zig-lang-support",
   "displayName": "Zig-Lang-Support",
   "description": "Powerful Zig support: official-compatible highlighting, ZLS intelligence, diagnostics, formatting, tasks, and dependency workflows.",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "publisher": "zig-lang-support",
   "license": "MIT",
   "repository": {

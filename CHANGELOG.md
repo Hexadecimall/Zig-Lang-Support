@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0
+
+- Organize project actions and dependencies into dedicated icon-selected pages.
+- Add a compact shortcut to the extension settings.
+
 ## 0.4.2
 
 - Restore rounded controls and panels in the simplified project manager.
