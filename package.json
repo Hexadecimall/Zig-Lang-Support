@@ -2,7 +2,7 @@
   "name": "zig-forge",
   "displayName": "Zig Forge",
   "description": "Powerful Zig support: official-compatible highlighting, ZLS intelligence, diagnostics, formatting, tasks, and dependency workflows.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "zig-forge",
   "license": "MIT",
   "repository": {

@@ -5,6 +5,10 @@ official-compatible TextMate token scopes with ZLS intelligence, direct Zig
 toolchain integration, and project commands that keep the editor close to the
 language's own workflows.
 
+> ZLS is an external language-server executable. Zig Forge falls back cleanly
+> when it is unavailable; it never requires a system-wide ZLS installation for
+> formatting, basic completion, or compiler diagnostics.
+
 ## What it provides
 
 - Zig and `.zon` syntax highlighting using the official extension's scope model.
