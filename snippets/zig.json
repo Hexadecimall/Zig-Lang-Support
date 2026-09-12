@@ -1,0 +1,7 @@
+{
+  "Public function": { "prefix": "pub fn", "body": ["pub fn ${1:name}(${2:args}) ${3:ReturnType} {", "\t${0}", "}"], "description": "Create a public Zig function" },
+  "Test block": { "prefix": "test", "body": ["test \"${1:description}\" {", "\t${0}", "}"], "description": "Create a Zig test" },
+  "Error union catch": { "prefix": "try", "body": "try ${1:expression}", "description": "Propagate an error union" },
+  "Allocator declaration": { "prefix": "allocator", "body": "const allocator = ${1:std.heap.page_allocator};", "description": "Declare an allocator" },
+  "Import standard library": { "prefix": "std", "body": "const std = @import(\"std\");", "description": "Import Zig standard library" }
+}
