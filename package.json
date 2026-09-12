@@ -2,7 +2,7 @@
   "name": "zig-lang-support",
   "displayName": "Zig-Lang-Support",
   "description": "Powerful Zig support: official-compatible highlighting, ZLS intelligence, diagnostics, formatting, tasks, and dependency workflows.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "zig-lang-support",
   "license": "MIT",
   "repository": {
@@ -60,6 +60,8 @@
       "[zig]": {
         "editor.defaultFormatter": "zig-lang-support.zig-lang-support",
         "editor.formatOnSave": true,
+        "editor.quickSuggestions": { "other": true, "comments": false, "strings": false },
+        "editor.suggestOnTriggerCharacters": true,
         "files.eol": "\n"
       },
       "files.exclude": {
@@ -190,7 +192,8 @@
       "zigLangSupport": [
         {
           "id": "zigLangSupport.project",
-          "name": "Project"
+          "name": "Project Manager",
+          "type": "webview"
         }
       ]
     }

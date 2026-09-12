@@ -20,9 +20,8 @@ language's own workflows.
 - A `zig fmt --stdin` formatter and format-on-save default for Zig files.
 - Commands and Tasks for building, running, testing, formatting, and fetching
   project dependencies.
-- A dependency command that delegates to Zig's own `zig fetch --save URL`, so
-  `build.zig.zon` remains the single source of truth.
-- A project sidebar for common project files and dependency/build actions.
+- A graphical project manager: add dependencies by name and URL, remove listed
+  dependencies, and build/run/test/fetch without editing `build.zig.zon`.
 - High-value snippets for public functions, tests, imports, allocators, and
   error propagation.
 

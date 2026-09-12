@@ -107,25 +107,58 @@ class ZigFormatter implements vscode.DocumentFormattingEditProvider {
   }
 }
 
-class ZigProjectProvider implements vscode.TreeDataProvider<ZigProjectItem> {
-  private readonly change = new vscode.EventEmitter<ZigProjectItem | undefined>();
-  readonly onDidChangeTreeData = this.change.event;
-  refresh(): void { this.change.fire(undefined); }
-  getTreeItem(item: ZigProjectItem): vscode.TreeItem { return item; }
-  async getChildren(): Promise<ZigProjectItem[]> {
-    const folder = workspaceFolder(); if (!folder) return [new ZigProjectItem("Open a Zig workspace", vscode.TreeItemCollapsibleState.None)];
-    const result: ZigProjectItem[] = [];
-    for (const name of ["build.zig", "build.zig.zon"]) {
-      const uri = vscode.Uri.joinPath(folder.uri, name);
-      try { await vscode.workspace.fs.stat(uri); result.push(new ZigProjectItem(name, vscode.TreeItemCollapsibleState.None, { command: "vscode.open", title: "Open", arguments: [uri] })); } catch { /* absent */ }
+interface Dependency { name: string; url: string; start: number; end: number; }
+
+function balancedEnd(text: string, open: number): number {
+  let depth = 0; let quote = false;
+  for (let index = open; index < text.length; index++) {
+    if (text[index] === "\"") {
+      let backslashes = 0;
+      for (let cursor = index - 1; cursor >= 0 && text[cursor] === "\\"; cursor--) backslashes++;
+      if (backslashes % 2 === 0) quote = !quote;
     }
-    result.push(new ZigProjectItem("Build project", vscode.TreeItemCollapsibleState.None, { command: "zigLangSupport.build", title: "Build" }));
-    result.push(new ZigProjectItem("Fetch dependencies", vscode.TreeItemCollapsibleState.None, { command: "zigLangSupport.fetchDependencies", title: "Fetch dependencies" }));
-    return result;
+    if (quote) continue;
+    if (text[index] === "{") depth++; else if (text[index] === "}" && --depth === 0) return index;
   }
+  return -1;
 }
 
-class ZigProjectItem extends vscode.TreeItem { constructor(label: string, state: vscode.TreeItemCollapsibleState, command?: vscode.Command) { super(label, state); this.command = command; this.contextValue = "zigLangSupport.item"; } }
+function dependencies(text: string): Dependency[] {
+  const block = text.search(/\.dependencies\s*=\s*\.\s*\{/); if (block < 0) return [];
+  const open = text.indexOf("{", block); const end = balancedEnd(text, open); if (end < 0) return [];
+  const result: Dependency[] = []; const entry = /\.([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\.\s*\{/g;
+  for (let match; (match = entry.exec(text)) !== null && match.index < end;) {
+    if (match.index <= open) continue;
+    const entryOpen = text.indexOf("{", match.index); const entryEnd = balancedEnd(text, entryOpen); if (entryEnd < 0 || entryEnd > end) continue;
+    const url = /\.url\s*=\s*"([^"]+)"/.exec(text.slice(entryOpen, entryEnd + 1))?.[1] ?? "local/path dependency";
+    result.push({ name: match[1], url, start: match.index, end: entryEnd }); entry.lastIndex = entryEnd + 1;
+  }
+  return result;
+}
+
+const escapeHtml = (value: string) => value.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]!);
+const html = (title: string, dependenciesList: Dependency[], hasProject: boolean) => `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';"><style>
+body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);padding:12px}h2{margin-top:0}input{box-sizing:border-box;width:100%;margin:4px 0;padding:7px;color:var(--vscode-input-foreground);background:var(--vscode-input-background);border:1px solid var(--vscode-input-border)}button{margin:4px 4px 4px 0;padding:6px 10px;color:var(--vscode-button-foreground);background:var(--vscode-button-background);border:0;cursor:pointer}.danger{background:var(--vscode-inputValidation-errorBackground)}.card{border-top:1px solid var(--vscode-panel-border);padding:9px 0}.url{font-size:11px;opacity:.75;word-break:break-all}</style></head><body>
+<h2>${escapeHtml(title)}</h2>${hasProject ? `<button data-action="build">Build</button><button data-action="run">Run</button><button data-action="test">Test</button><button data-action="fetch">Fetch all</button><button data-action="restart">Restart ZLS</button><h3>Dependencies</h3><div id="dependencies">${dependenciesList.map(dep => `<div class="card"><strong>${escapeHtml(dep.name)}</strong><div class="url">${escapeHtml(dep.url)}</div><button class="danger" data-remove="${escapeHtml(dep.name)}">Remove</button></div>`).join("") || "No dependencies yet."}</div><h3>Add dependency</h3><input id="name" placeholder="Name, e.g. zqlite"><input id="url" placeholder="Package URL"><button data-action="add">Add dependency</button>` : `<p>Open a folder to manage its Zig project.</p>`}<script>const v=acquireVsCodeApi(),n=document.getElementById('name'),u=document.getElementById('url');document.addEventListener('click',e=>{const t=e.target;if(t.dataset.remove)v.postMessage({type:'remove',name:t.dataset.remove});if(t.dataset.action==='add')v.postMessage({type:'add',name:n.value,url:u.value});if(t.dataset.action&&t.dataset.action!=='add')v.postMessage({type:t.dataset.action});});</script></body></html>`;
+
+class ProjectDashboard implements vscode.WebviewViewProvider {
+  private view?: vscode.WebviewView;
+  resolveWebviewView(view: vscode.WebviewView): void { this.view = view; view.webview.options = { enableScripts: true }; view.webview.onDidReceiveMessage(message => void this.handle(message)); this.refresh(); }
+  async refresh(): Promise<void> { const folder = workspaceFolder(); if (!folder || !this.view) return; const zon = vscode.Uri.joinPath(folder.uri, "build.zig.zon"); try { const text = Buffer.from(await vscode.workspace.fs.readFile(zon)).toString("utf8"); this.view.webview.html = html(folder.name, dependencies(text), true); } catch { this.view.webview.html = html(folder.name, [], false); } }
+  private async handle(message: { type: string; name?: string; url?: string }): Promise<void> {
+    const folder = workspaceFolder(); if (!folder) return;
+    if (["build", "run", "test", "fetch", "restart"].includes(message.type)) { await vscode.commands.executeCommand(`zigLangSupport.${message.type === "restart" ? "restartLanguageServer" : message.type === "fetch" ? "fetchDependencies" : message.type}`); return; }
+    if (message.type === "add") {
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(message.name ?? "") || !message.url?.trim()) { void vscode.window.showErrorMessage("Enter a valid Zig dependency name and package URL."); return; }
+      try { await execFile(config().zig, ["fetch", `--save=${message.name}`, message.url.trim()], folder.uri.fsPath); await this.refresh(); } catch (error) { void vscode.window.showErrorMessage(`Could not add dependency: ${String((error as { stderr?: string }).stderr ?? error)}`); }
+    }
+    if (message.type === "remove" && message.name) {
+      const zon = vscode.Uri.joinPath(folder.uri, "build.zig.zon"); const text = Buffer.from(await vscode.workspace.fs.readFile(zon)).toString("utf8"); const dep = dependencies(text).find(item => item.name === message.name); if (!dep) return;
+      let end = dep.end + 1; while (/\s/.test(text[end] ?? "")) end++; if (text[end] === ",") end++; else { let start = dep.start; while (start > 0 && /\s/.test(text[start - 1])) start--; await vscode.workspace.fs.writeFile(zon, Buffer.from(text.slice(0, start) + text.slice(end))); await this.refresh(); return; }
+      await vscode.workspace.fs.writeFile(zon, Buffer.from(text.slice(0, dep.start) + text.slice(end))); await this.refresh();
+    }
+  }
+}
 
 let client: LanguageClient | undefined;
 
@@ -154,22 +187,25 @@ function runTask(name: string, args: string[], resource?: vscode.Uri): void {
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  const diagnostics = new CompilerDiagnostics(); const projects = new ZigProjectProvider();
-  context.subscriptions.push(diagnostics, vscode.window.registerTreeDataProvider("zigLangSupport.project", projects));
+  const diagnostics = new CompilerDiagnostics(); const dashboard = new ProjectDashboard();
+  const languageStatus = vscode.window.createStatusBarItem("zigLangSupport.zls", vscode.StatusBarAlignment.Right, 100);
+  languageStatus.command = "zigLangSupport.restartLanguageServer"; languageStatus.text = "$(symbol-method) ZLS: starting"; languageStatus.show();
+  context.subscriptions.push(diagnostics, languageStatus, vscode.window.registerWebviewViewProvider("zigLangSupport.project", dashboard));
   context.subscriptions.push(vscode.languages.registerCompletionItemProvider({ language: ZIG_LANGUAGE }, new FallbackCompletionProvider(), "@", "."));
   context.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider({ language: ZIG_LANGUAGE }, new ZigFormatter()));
   context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => diagnostics.schedule(event.document)));
-  context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(document => { if (config(document.uri).diagnosticsOnSave) void diagnostics.refresh(document); projects.refresh(); }));
-  context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration("zigLangSupport")) { void startLanguageServer(context); projects.refresh(); } }));
+  context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(document => { if (config(document.uri).diagnosticsOnSave) void diagnostics.refresh(document); void dashboard.refresh(); }));
+  context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration("zigLangSupport")) { void startLanguageServer(context); void dashboard.refresh(); } }));
   context.subscriptions.push(vscode.commands.registerCommand("zigLangSupport.formatDocument", () => vscode.commands.executeCommand("editor.action.formatDocument")));
   context.subscriptions.push(vscode.commands.registerCommand("zigLangSupport.build", () => runTask("build", ["build", ...config().taskArgs])));
   context.subscriptions.push(vscode.commands.registerCommand("zigLangSupport.run", () => runTask("run", ["build", "run", ...config().taskArgs])));
   context.subscriptions.push(vscode.commands.registerCommand("zigLangSupport.test", (uri?: vscode.Uri) => { const target = uri ?? vscode.window.activeTextEditor?.document.uri; runTask("test", target ? ["test", target.fsPath] : ["build", "test"], target); }));
   context.subscriptions.push(vscode.commands.registerCommand("zigLangSupport.fetchDependencies", () => runTask("fetch dependencies", ["build", "--fetch", ...config().taskArgs])));
-  context.subscriptions.push(vscode.commands.registerCommand("zigLangSupport.addDependency", async () => { const url = await vscode.window.showInputBox({ prompt: "Package URL (zig fetch --save)", placeHolder: "https://example.com/package.tar.gz" }); if (url) runTask("add dependency", ["fetch", "--save", url]); }));
+  context.subscriptions.push(vscode.commands.registerCommand("zigLangSupport.addDependency", () => vscode.commands.executeCommand("workbench.view.extension.zigLangSupport")));
   context.subscriptions.push(vscode.commands.registerCommand("zigLangSupport.restartLanguageServer", async () => { if (client) await client.stop(); client = undefined; await startLanguageServer(context); }));
   context.subscriptions.push(vscode.commands.registerCommand("zigLangSupport.showProject", () => vscode.commands.executeCommand("workbench.view.extension.zigLangSupport")));
   await startLanguageServer(context);
+  if (client?.state === State.Running) languageStatus.text = "$(check) ZLS: ready"; else languageStatus.text = "$(warning) ZLS: unavailable";
 }
 
 export async function deactivate(): Promise<void> { if (client) await client.stop(); }

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0
+
+- Add a graphical project manager with dependency add/remove controls.
+- Enable automatic Zig suggestions and show the ZLS connection status.
+
 ## 0.2.0
 
 - Bundle ZLS 0.16.0 for macOS on Apple Silicon.
