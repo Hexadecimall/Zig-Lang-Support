@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2
+
+- Restore rounded controls and panels in the simplified project manager.
+
 ## 0.4.1
 
 - Simplify the project manager to match native VS Code utility views.
