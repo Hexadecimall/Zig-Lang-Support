@@ -1,9 +1,9 @@
 {
-  "name": "zig-forge",
-  "displayName": "Zig Forge",
+  "name": "zig-lang-support",
+  "displayName": "Zig-Lang-Support",
   "description": "Powerful Zig support: official-compatible highlighting, ZLS intelligence, diagnostics, formatting, tasks, and dependency workflows.",
-  "version": "0.1.1",
-  "publisher": "zig-forge",
+  "version": "0.2.0",
+  "publisher": "zig-lang-support",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -58,7 +58,7 @@
     ],
     "configurationDefaults": {
       "[zig]": {
-        "editor.defaultFormatter": "zig-forge.zig-forge",
+        "editor.defaultFormatter": "zig-lang-support.zig-lang-support",
         "editor.formatOnSave": true,
         "files.eol": "\n"
       },
@@ -68,42 +68,42 @@
       }
     },
     "configuration": {
-      "title": "Zig Forge",
+      "title": "Zig-Lang-Support",
       "properties": {
-        "zigForge.zig.path": {
+        "zigLangSupport.zig.path": {
           "type": "string",
           "default": "zig",
           "scope": "resource",
           "description": "Path to the Zig executable, or zig to resolve it from PATH."
         },
-        "zigForge.zls.path": {
+        "zigLangSupport.zls.path": {
           "type": "string",
           "default": "zls",
           "scope": "resource",
           "description": "Path to ZLS. Leave as zls to resolve it from PATH."
         },
-        "zigForge.zls.enabled": {
+        "zigLangSupport.zls.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Use ZLS for semantic completion, navigation, hover, symbols, and diagnostics when available."
         },
-        "zigForge.diagnostics.enabled": {
+        "zigLangSupport.diagnostics.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Run Zig compiler diagnostics for saved files when ZLS is unavailable."
         },
-        "zigForge.diagnostics.onSave": {
+        "zigLangSupport.diagnostics.onSave": {
           "type": "boolean",
           "default": true,
           "description": "Refresh fallback compiler diagnostics after saving a Zig source file."
         },
-        "zigForge.diagnostics.debounceMs": {
+        "zigLangSupport.diagnostics.debounceMs": {
           "type": "number",
           "default": 500,
           "minimum": 100,
           "description": "Delay before fallback diagnostics run after an edit."
         },
-        "zigForge.format.args": {
+        "zigLangSupport.format.args": {
           "type": "array",
           "default": [],
           "items": {
@@ -111,7 +111,7 @@
           },
           "description": "Additional arguments sent to zig fmt."
         },
-        "zigForge.tasks.extraArgs": {
+        "zigLangSupport.tasks.extraArgs": {
           "type": "array",
           "default": [],
           "items": {
@@ -123,50 +123,50 @@
     },
     "commands": [
       {
-        "command": "zigForge.formatDocument",
+        "command": "zigLangSupport.formatDocument",
         "title": "Format Document",
-        "category": "Zig Forge"
+        "category": "Zig-Lang-Support"
       },
       {
-        "command": "zigForge.build",
+        "command": "zigLangSupport.build",
         "title": "Build Project",
-        "category": "Zig Forge"
+        "category": "Zig-Lang-Support"
       },
       {
-        "command": "zigForge.run",
+        "command": "zigLangSupport.run",
         "title": "Run Project",
-        "category": "Zig Forge"
+        "category": "Zig-Lang-Support"
       },
       {
-        "command": "zigForge.test",
+        "command": "zigLangSupport.test",
         "title": "Test Current File",
-        "category": "Zig Forge"
+        "category": "Zig-Lang-Support"
       },
       {
-        "command": "zigForge.addDependency",
+        "command": "zigLangSupport.addDependency",
         "title": "Add Dependency",
-        "category": "Zig Forge"
+        "category": "Zig-Lang-Support"
       },
       {
-        "command": "zigForge.fetchDependencies",
+        "command": "zigLangSupport.fetchDependencies",
         "title": "Fetch Dependencies",
-        "category": "Zig Forge"
+        "category": "Zig-Lang-Support"
       },
       {
-        "command": "zigForge.restartLanguageServer",
+        "command": "zigLangSupport.restartLanguageServer",
         "title": "Restart Language Server",
-        "category": "Zig Forge"
+        "category": "Zig-Lang-Support"
       },
       {
-        "command": "zigForge.showProject",
+        "command": "zigLangSupport.showProject",
         "title": "Show Project Dashboard",
-        "category": "Zig Forge"
+        "category": "Zig-Lang-Support"
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "zigForge.addDependency",
+          "command": "zigLangSupport.addDependency",
           "when": "workspaceContains:build.zig.zon"
         }
       ]
@@ -180,16 +180,16 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "zigForge",
-          "title": "Zig Forge",
+          "id": "zigLangSupport",
+          "title": "Zig-Lang-Support",
           "icon": "media/zig.svg"
         }
       ]
     },
     "views": {
-      "zigForge": [
+      "zigLangSupport": [
         {
-          "id": "zigForge.project",
+          "id": "zigLangSupport.project",
           "name": "Project"
         }
       ]

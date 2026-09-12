@@ -1,8 +1,10 @@
 # Changelog
 
-## 0.1.1
+## 0.2.0
 
-- Gracefully use local Zig features when the optional ZLS executable is absent.
+- Bundle ZLS 0.16.0 for macOS on Apple Silicon.
+- Prefer the bundled server over a system-wide ZLS installation.
+- Rename the extension to Zig-Lang-Support.
 
 ## 0.1.0
 
