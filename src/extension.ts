@@ -131,6 +131,11 @@ let client: LanguageClient | undefined;
 async function startLanguageServer(context: vscode.ExtensionContext): Promise<void> {
   if (!config().zlsEnabled || client?.state === State.Running) return;
   const folder = workspaceFolder();
+  try {
+    await execFile(config().zls, ["--version"], folder?.uri.fsPath);
+  } catch {
+    return;
+  }
   const serverOptions: ServerOptions = { command: config().zls, args: [], options: { cwd: folder?.uri.fsPath } };
   const clientOptions: LanguageClientOptions = { documentSelector: [{ language: ZIG_LANGUAGE, scheme: "file" }], synchronize: { fileEvents: vscode.workspace.createFileSystemWatcher("**/*.{zig,zon}") }, outputChannelName: "Zig Forge Language Server" };
   client = new LanguageClient("zigForge.zls", "Zig Forge Language Server", serverOptions, clientOptions);

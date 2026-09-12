@@ -26,7 +26,8 @@ language's own workflows.
 
 1. Install a Zig toolchain and make `zig` available on `PATH`.
 2. Install ZLS and make `zls` available on `PATH` for the full language-server
-   experience. Zig Forge remains useful without it.
+   experience. When ZLS is unavailable, Zig Forge quietly uses its local
+   completion, formatting, and compiler-diagnostic features instead.
 3. Open a folder containing `build.zig` or `build.zig.zon`.
 4. Use the **Zig Forge** view or Command Palette for project actions.
 
