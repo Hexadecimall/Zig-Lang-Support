@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1
+
+- Simplify the project manager to match native VS Code utility views.
+- Remove decorative server and package-search labels.
+
 ## 0.4.0
 
 - Replace manual dependency URLs with a polished package-name search.
