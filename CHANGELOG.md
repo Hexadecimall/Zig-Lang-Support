@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0
+
+- Replace manual dependency URLs with a polished package-name search.
+- Add one-click installation from Zigistry results and a compact dependency view.
+- Trigger autocomplete while identifiers are typed instead of relying only on editor heuristics.
+
 ## 0.3.0
 
 - Add a graphical project manager with dependency add/remove controls.

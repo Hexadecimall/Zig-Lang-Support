@@ -20,8 +20,9 @@ language's own workflows.
 - A `zig fmt --stdin` formatter and format-on-save default for Zig files.
 - Commands and Tasks for building, running, testing, formatting, and fetching
   project dependencies.
-- A graphical project manager: add dependencies by name and URL, remove listed
-  dependencies, and build/run/test/fetch without editing `build.zig.zon`.
+- A graphical project manager: search for dependencies by package name, install
+  with one click, remove listed dependencies, and build/run/test/fetch without
+  editing `build.zig.zon` or entering repository URLs.
 - High-value snippets for public functions, tests, imports, allocators, and
   error propagation.
 
@@ -57,10 +58,11 @@ language's own workflows.
 ## Privacy and security
 
 Zig-Lang-Support runs local tools selected by the workspace settings. It does not
-collect telemetry or send source code to an external service. It bundles a ZLS
-server for macOS on Apple Silicon but does not bundle a Zig compiler. Dependency
-retrieval happens only when a user invokes a Zig dependency command, and it is
-performed by the local Zig executable.
+collect telemetry or send source code to an external service. Package searches
+send only the typed search phrase to the Zigistry community index. It bundles a
+ZLS server for macOS on Apple Silicon but does not bundle a Zig compiler.
+Dependency retrieval happens only after a user selects a package and is performed
+by the local Zig executable.
 
 ## Credits
 

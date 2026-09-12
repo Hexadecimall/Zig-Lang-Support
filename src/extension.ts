@@ -107,7 +107,17 @@ class ZigFormatter implements vscode.DocumentFormattingEditProvider {
   }
 }
 
-interface Dependency { name: string; url: string; start: number; end: number; }
+interface Dependency { name: string; start: number; end: number; }
+
+interface RegistryPackage {
+  id: string;
+  name: string;
+  description: string;
+  license: string;
+  minimumZigVersion: string;
+  stars: number;
+  host: string;
+}
 
 function balancedEnd(text: string, open: number): number {
   let depth = 0; let quote = false;
@@ -130,27 +140,56 @@ function dependencies(text: string): Dependency[] {
   for (let match; (match = entry.exec(text)) !== null && match.index < end;) {
     if (match.index <= open) continue;
     const entryOpen = text.indexOf("{", match.index); const entryEnd = balancedEnd(text, entryOpen); if (entryEnd < 0 || entryEnd > end) continue;
-    const url = /\.url\s*=\s*"([^"]+)"/.exec(text.slice(entryOpen, entryEnd + 1))?.[1] ?? "local/path dependency";
-    result.push({ name: match[1], url, start: match.index, end: entryEnd }); entry.lastIndex = entryEnd + 1;
+    result.push({ name: match[1], start: match.index, end: entryEnd }); entry.lastIndex = entryEnd + 1;
   }
   return result;
 }
 
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]!);
-const html = (title: string, dependenciesList: Dependency[], hasProject: boolean) => `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';"><style>
-body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);padding:12px}h2{margin-top:0}input{box-sizing:border-box;width:100%;margin:4px 0;padding:7px;color:var(--vscode-input-foreground);background:var(--vscode-input-background);border:1px solid var(--vscode-input-border)}button{margin:4px 4px 4px 0;padding:6px 10px;color:var(--vscode-button-foreground);background:var(--vscode-button-background);border:0;cursor:pointer}.danger{background:var(--vscode-inputValidation-errorBackground)}.card{border-top:1px solid var(--vscode-panel-border);padding:9px 0}.url{font-size:11px;opacity:.75;word-break:break-all}</style></head><body>
-<h2>${escapeHtml(title)}</h2>${hasProject ? `<button data-action="build">Build</button><button data-action="run">Run</button><button data-action="test">Test</button><button data-action="fetch">Fetch all</button><button data-action="restart">Restart ZLS</button><h3>Dependencies</h3><div id="dependencies">${dependenciesList.map(dep => `<div class="card"><strong>${escapeHtml(dep.name)}</strong><div class="url">${escapeHtml(dep.url)}</div><button class="danger" data-remove="${escapeHtml(dep.name)}">Remove</button></div>`).join("") || "No dependencies yet."}</div><h3>Add dependency</h3><input id="name" placeholder="Name, e.g. zqlite"><input id="url" placeholder="Package URL"><button data-action="add">Add dependency</button>` : `<p>Open a folder to manage its Zig project.</p>`}<script>const v=acquireVsCodeApi(),n=document.getElementById('name'),u=document.getElementById('url');document.addEventListener('click',e=>{const t=e.target;if(t.dataset.remove)v.postMessage({type:'remove',name:t.dataset.remove});if(t.dataset.action==='add')v.postMessage({type:'add',name:n.value,url:u.value});if(t.dataset.action&&t.dataset.action!=='add')v.postMessage({type:t.dataset.action});});</script></body></html>`;
+const html = (title: string, dependenciesList: Dependency[], hasProject: boolean, nonce: string) => `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';"><style>
+:root{color-scheme:light dark}*{box-sizing:border-box}body{font-family:var(--vscode-font-family);font-size:13px;color:var(--vscode-foreground);margin:0;padding:18px;line-height:1.45}.shell{max-width:760px;margin:0 auto}.eyebrow{color:var(--vscode-descriptionForeground);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.title{font-size:24px;font-weight:720;letter-spacing:-.02em;margin:2px 0 0;overflow:hidden;text-overflow:ellipsis}.badge{flex:none;border:1px solid var(--vscode-panel-border);border-radius:999px;padding:4px 9px;color:var(--vscode-testing-iconPassed);background:var(--vscode-editorWidget-background);font-size:11px}.actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:22px}.action,.add,.remove{font:inherit;border:0;border-radius:5px;cursor:pointer}.action{padding:8px 7px;color:var(--vscode-button-secondaryForeground);background:var(--vscode-button-secondaryBackground)}.action:hover{background:var(--vscode-button-secondaryHoverBackground)}.section{margin-top:20px}.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}.section-title{font-size:14px;font-weight:700}.count{color:var(--vscode-descriptionForeground);font-size:11px}.panel{border:1px solid var(--vscode-panel-border);border-radius:8px;background:var(--vscode-sideBar-background);overflow:hidden}.installed{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--vscode-panel-border)}.installed:last-child{border-bottom:0}.package-mark{display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:6px;color:var(--vscode-symbolIcon-typeParameterForeground);background:var(--vscode-textCodeBlock-background);font-weight:800}.package-name{font-weight:650;min-width:0;overflow:hidden;text-overflow:ellipsis}.installed-copy{min-width:0;flex:1}.muted{color:var(--vscode-descriptionForeground);font-size:11px}.remove{width:27px;height:27px;flex:none;color:var(--vscode-descriptionForeground);background:transparent;font-size:17px;line-height:1}.remove:hover{color:var(--vscode-errorForeground);background:var(--vscode-toolbar-hoverBackground)}.empty{padding:18px;text-align:center;color:var(--vscode-descriptionForeground)}.search-wrap{position:relative}.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--vscode-descriptionForeground);pointer-events:none}input{width:100%;height:38px;padding:0 38px 0 34px;border:1px solid var(--vscode-input-border,var(--vscode-panel-border));border-radius:6px;color:var(--vscode-input-foreground);background:var(--vscode-input-background);font:inherit;outline:none}input:focus{border-color:var(--vscode-focusBorder)}.spinner{display:none;position:absolute;right:12px;top:11px;width:15px;height:15px;border:2px solid var(--vscode-panel-border);border-top-color:var(--vscode-progressBar-background);border-radius:50%;animation:spin .7s linear infinite}.loading .spinner{display:block}@keyframes spin{to{transform:rotate(360deg)}}.results{margin-top:8px}.result{display:grid;grid-template-columns:1fr auto;gap:8px 12px;padding:12px;border-bottom:1px solid var(--vscode-panel-border)}.result:last-child{border-bottom:0}.result-name{font-weight:700}.description{margin-top:3px;color:var(--vscode-descriptionForeground);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.chip{padding:2px 6px;border-radius:999px;background:var(--vscode-textCodeBlock-background);color:var(--vscode-descriptionForeground);font-size:10px}.add{align-self:center;padding:6px 11px;color:var(--vscode-button-foreground);background:var(--vscode-button-background)}.add:hover{background:var(--vscode-button-hoverBackground)}.add:disabled{opacity:.55;cursor:default}.privacy{margin:7px 2px 0;color:var(--vscode-descriptionForeground);font-size:10px}.error{padding:12px;color:var(--vscode-errorForeground)}@media(max-width:420px){body{padding:12px}.actions{grid-template-columns:repeat(2,1fr)}.title{font-size:20px}}
+</style></head><body><main class="shell"><div class="top"><div><div class="eyebrow">Zig project</div><div class="title">${escapeHtml(title)}</div></div><div class="badge">● ZLS bundled</div></div>${hasProject ? `<div class="actions"><button class="action" data-action="build">Build</button><button class="action" data-action="run">Run</button><button class="action" data-action="test">Test</button><button class="action" data-action="fetch">Fetch all</button></div><section class="section"><div class="section-head"><span class="section-title">Installed</span><span class="count">${dependenciesList.length} package${dependenciesList.length === 1 ? "" : "s"}</span></div><div class="panel">${dependenciesList.map(dep => `<div class="installed"><div class="package-mark">Z</div><div class="installed-copy"><div class="package-name">${escapeHtml(dep.name)}</div><div class="muted">Project dependency</div></div><button class="remove" title="Remove ${escapeHtml(dep.name)}" aria-label="Remove ${escapeHtml(dep.name)}" data-remove="${escapeHtml(dep.name)}">×</button></div>`).join("") || `<div class="empty">No dependencies installed yet</div>`}</div></section><section class="section"><div class="section-head"><span class="section-title">Find a package</span><span class="count">Search by name</span></div><div class="search-wrap" id="searchWrap"><span class="search-icon">⌕</span><input id="search" autocomplete="off" spellcheck="false" placeholder="Search packages…" aria-label="Search Zig packages"><span class="spinner"></span></div><div class="privacy">Only the search phrase is sent to the community package index.</div><div class="panel results" id="results" hidden></div></section>` : `<div class="panel empty">Open a folder containing build.zig.zon to manage its packages.</div>`}</main><script nonce="${nonce}">
+const vscode=acquireVsCodeApi();const input=document.getElementById('search');const results=document.getElementById('results');const wrap=document.getElementById('searchWrap');let timer;function el(tag,className,text){const node=document.createElement(tag);if(className)node.className=className;if(text)node.textContent=text;return node}function render(items){wrap?.classList.remove('loading');results.replaceChildren();results.hidden=false;if(!items.length){results.append(el('div','empty','No matching packages'));return}for(const item of items){const row=el('div','result');const copy=el('div');copy.append(el('div','result-name',item.name));copy.append(el('div','description',item.description||'Zig package'));const meta=el('div','meta');for(const value of [item.host,item.minimumZigVersion&&('Zig '+item.minimumZigVersion),item.license,item.stars?('★ '+item.stars):''].filter(Boolean))meta.append(el('span','chip',value));copy.append(meta);const add=el('button','add','Add');add.dataset.packageId=item.id;row.append(copy,add);results.append(row)}}input?.addEventListener('input',()=>{clearTimeout(timer);const query=input.value.trim();if(query.length<2){wrap.classList.remove('loading');results.hidden=true;return}wrap.classList.add('loading');timer=setTimeout(()=>vscode.postMessage({type:'search',query}),280)});document.addEventListener('click',event=>{const target=event.target.closest('button');if(!target)return;if(target.dataset.remove)vscode.postMessage({type:'remove',name:target.dataset.remove});if(target.dataset.packageId){target.disabled=true;target.textContent='Adding…';vscode.postMessage({type:'add',packageId:target.dataset.packageId})}if(target.dataset.action)vscode.postMessage({type:target.dataset.action})});window.addEventListener('message',event=>{if(event.data.type==='results')render(event.data.items);if(event.data.type==='searchError'){wrap?.classList.remove('loading');results.hidden=false;results.replaceChildren(el('div','error',event.data.message))}});
+</script></body></html>`;
+
+async function searchRegistry(query: string): Promise<RegistryPackage[]> {
+  const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const endpoint = new URL("https://zigistry-backend.hf.space/search/packages/");
+    endpoint.search = new URLSearchParams({ q: query, page: "1", per_page: "20", sort: "intelligent", dir: "desc" }).toString();
+    const response = await fetch(endpoint, { signal: controller.signal, headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error(`Package search returned ${response.status}`);
+    const body = await response.json() as { items?: Array<Record<string, unknown>> };
+    return (body.items ?? []).flatMap(item => {
+      const id = typeof item.id === "string" ? item.id : ""; const name = typeof item.repo_name === "string" ? item.repo_name : "";
+      if (!/^(gh|cb)\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(id) || !name) return [];
+      return [{ id, name, description: typeof item.description === "string" ? item.description : "", license: typeof item.license === "string" && item.license !== "-" ? item.license : "", minimumZigVersion: typeof item.minimum_zig_version === "string" ? item.minimum_zig_version : "", stars: typeof item.stargazer_count === "number" ? item.stargazer_count : 0, host: id.startsWith("gh/") ? "GitHub" : "Codeberg" }];
+    });
+  } finally { clearTimeout(timeout); }
+}
+
+function registryTarget(id: string): { name: string; url: string } | undefined {
+  const match = /^(gh|cb)\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)$/.exec(id); if (!match) return undefined;
+  let name = match[3].replace(/[^A-Za-z0-9_]/g, "_"); if (!/^[A-Za-z_]/.test(name)) name = `dep_${name}`;
+  const host = match[1] === "gh" ? "github.com" : "codeberg.org";
+  return { name, url: `git+https://${host}/${match[2]}/${match[3]}.git` };
+}
 
 class ProjectDashboard implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
   resolveWebviewView(view: vscode.WebviewView): void { this.view = view; view.webview.options = { enableScripts: true }; view.webview.onDidReceiveMessage(message => void this.handle(message)); this.refresh(); }
-  async refresh(): Promise<void> { const folder = workspaceFolder(); if (!folder || !this.view) return; const zon = vscode.Uri.joinPath(folder.uri, "build.zig.zon"); try { const text = Buffer.from(await vscode.workspace.fs.readFile(zon)).toString("utf8"); this.view.webview.html = html(folder.name, dependencies(text), true); } catch { this.view.webview.html = html(folder.name, [], false); } }
-  private async handle(message: { type: string; name?: string; url?: string }): Promise<void> {
+  async refresh(): Promise<void> { const folder = workspaceFolder(); if (!folder || !this.view) return; const zon = vscode.Uri.joinPath(folder.uri, "build.zig.zon"); const nonce = `${Date.now()}${Math.random().toString(36).slice(2)}`; try { const text = Buffer.from(await vscode.workspace.fs.readFile(zon)).toString("utf8"); this.view.webview.html = html(folder.name, dependencies(text), true, nonce); } catch { this.view.webview.html = html(folder.name, [], false, nonce); } }
+  private async handle(message: { type: string; name?: string; query?: string; packageId?: string }): Promise<void> {
     const folder = workspaceFolder(); if (!folder) return;
     if (["build", "run", "test", "fetch", "restart"].includes(message.type)) { await vscode.commands.executeCommand(`zigLangSupport.${message.type === "restart" ? "restartLanguageServer" : message.type === "fetch" ? "fetchDependencies" : message.type}`); return; }
+    if (message.type === "search") {
+      const query = message.query?.trim().slice(0, 80) ?? ""; if (query.length < 2) return;
+      try { this.view?.webview.postMessage({ type: "results", items: await searchRegistry(query) }); } catch { this.view?.webview.postMessage({ type: "searchError", message: "Package search is unavailable. Try again shortly." }); }
+      return;
+    }
     if (message.type === "add") {
-      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(message.name ?? "") || !message.url?.trim()) { void vscode.window.showErrorMessage("Enter a valid Zig dependency name and package URL."); return; }
-      try { await execFile(config().zig, ["fetch", `--save=${message.name}`, message.url.trim()], folder.uri.fsPath); await this.refresh(); } catch (error) { void vscode.window.showErrorMessage(`Could not add dependency: ${String((error as { stderr?: string }).stderr ?? error)}`); }
+      const target = registryTarget(message.packageId ?? ""); if (!target) { void vscode.window.showErrorMessage("That package could not be verified."); return; }
+      try { await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Adding ${target.name}…` }, () => execFile(config().zig, ["fetch", `--save=${target.name}`, target.url], folder.uri.fsPath)); await this.refresh(); } catch (error) { void vscode.window.showErrorMessage(`Could not add dependency: ${String((error as { stderr?: string }).stderr ?? error)}`); await this.refresh(); }
     }
     if (message.type === "remove" && message.name) {
       const zon = vscode.Uri.joinPath(folder.uri, "build.zig.zon"); const text = Buffer.from(await vscode.workspace.fs.readFile(zon)).toString("utf8"); const dep = dependencies(text).find(item => item.name === message.name); if (!dep) return;
@@ -188,12 +227,20 @@ function runTask(name: string, args: string[], resource?: vscode.Uri): void {
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const diagnostics = new CompilerDiagnostics(); const dashboard = new ProjectDashboard();
+  let suggestionTimer: NodeJS.Timeout | undefined;
   const languageStatus = vscode.window.createStatusBarItem("zigLangSupport.zls", vscode.StatusBarAlignment.Right, 100);
   languageStatus.command = "zigLangSupport.restartLanguageServer"; languageStatus.text = "$(symbol-method) ZLS: starting"; languageStatus.show();
   context.subscriptions.push(diagnostics, languageStatus, vscode.window.registerWebviewViewProvider("zigLangSupport.project", dashboard));
   context.subscriptions.push(vscode.languages.registerCompletionItemProvider({ language: ZIG_LANGUAGE }, new FallbackCompletionProvider(), "@", "."));
   context.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider({ language: ZIG_LANGUAGE }, new ZigFormatter()));
-  context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => diagnostics.schedule(event.document)));
+  context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => {
+    diagnostics.schedule(event.document);
+    const editor = vscode.window.activeTextEditor; const inserted = event.contentChanges.at(-1)?.text ?? "";
+    if (editor?.document === event.document && event.document.languageId === ZIG_LANGUAGE && editor.selections.length === 1 && /^[A-Za-z0-9_@.]$/.test(inserted)) {
+      clearTimeout(suggestionTimer); suggestionTimer = setTimeout(() => void vscode.commands.executeCommand("editor.action.triggerSuggest"), 90);
+    }
+  }));
+  context.subscriptions.push({ dispose: () => clearTimeout(suggestionTimer) });
   context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(document => { if (config(document.uri).diagnosticsOnSave) void diagnostics.refresh(document); void dashboard.refresh(); }));
   context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration("zigLangSupport")) { void startLanguageServer(context); void dashboard.refresh(); } }));
   context.subscriptions.push(vscode.commands.registerCommand("zigLangSupport.formatDocument", () => vscode.commands.executeCommand("editor.action.formatDocument")));
