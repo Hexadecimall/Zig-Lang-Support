@@ -3,6 +3,5 @@
   "brackets": [["{", "}"], ["[", "]"], ["(", ")"]],
   "autoClosingPairs": [{ "open": "{", "close": "}" }, { "open": "[", "close": "]" }, { "open": "(", "close": ")" }, { "open": "\"", "close": "\"", "notIn": ["string", "comment"] }],
   "surroundingPairs": [{ "open": "{", "close": "}" }, { "open": "[", "close": "]" }, { "open": "(", "close": ")" }, { "open": "\"", "close": "\"" }],
-  "indentationRules": { "increaseIndentPattern": "^((?!//).)*(\\{|\\[|\\().*$", "decreaseIndentPattern": "^\\s*[\\}\\]\\)].*$" },
   "wordPattern": "(-?\\d*\\.\\d\\w*)|([^\\`~!@#$%^&*()=+[{]}\\\\|;:'\\\",.<>/?\\s]+)"
 }

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1
+
+- Default Zig indentation to four inserted spaces.
+- Stop ordinary newlines from triggering indentation after closed expressions.
+
 ## 0.5.0
 
 - Organize project actions and dependencies into dedicated icon-selected pages.
